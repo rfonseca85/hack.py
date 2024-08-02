@@ -1,27 +1,30 @@
-from flask import Flask, request, make_response
-import os
+import http.server
+import socketserver
 
-app = Flask(__name__)
+PORT = 80
 
-@app.route('/')
-def index():
-    cookie_data = []
-
-    if request.cookies:
-        cookies = request.cookies
-        cookie_data = [f"{key}: {value}" for key, value in cookies.items()]
-        cookies_info = "<br>".join(cookie_data)
+class MyHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Capture and print cookies to the console
+        if "Cookie" in self.headers:
+            cookies = self.headers["Cookie"]
+            print(f"Received cookies: {cookies}")
+        else:
+            print("No cookies found")
         
-        # Save cookies to a text file
-        with open("cookies.txt", "a") as file:
-            file.write("\n".join(cookie_data) + "\n")
-        
-        return f"Cookies received:<br>{cookies_info}"
-    else:
-        resp = make_response("No cookies found!")
-        return resp
+        # Respond to the client
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(b"Hello, World! Your cookies have been logged.")
+    
+    def log_message(self, format, *args):
+        # Override to prevent printing to stderr
+        return
 
-if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=80)
+# Set up and start the server
+Handler = MyHandler
+httpd = socketserver.TCPServer(("", PORT), Handler)
 
-
+print(f"Serving at port {PORT}")
+httpd.serve_forever()
